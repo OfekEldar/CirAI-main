@@ -501,7 +501,7 @@ def open_desmos_calculator(formula,params):
 
 # --- GUI --- #
 st.set_page_config(
-    page_title="CirAI | AI Circuit Analysis & Analog IC Design Copilot",
+    page_title="CirAI Pro | AI Circuit Analysis & Analog IC Design Copilot",
     page_icon="⚡",
     layout="wide"
 )
