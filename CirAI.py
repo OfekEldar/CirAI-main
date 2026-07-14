@@ -17,6 +17,7 @@ import datetime
 from streamlit_oauth import OAuth2Component
 import jwt
 import copy
+import contextlib
 
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 CLIENT_ID = st.secrets["GOOGLE_CLIENT_ID"]
@@ -36,6 +37,163 @@ derivation_steps_flag = 0
 img, topology, analysis_request, circuit_uses = None, None, None, None
 performance_advice, power_advice, noise_advice, component_advice, Recommended_articles_links = None, None, None, None, None
 model = genai.GenerativeModel('gemini-3.5-flash')
+
+# ---- Design tokens (professional EDA dark theme) ----
+THEME = {
+    "bg":        "#0e1117",
+    "surface":   "#161b26",
+    "surface_2": "#1c2333",
+    "border":    "#2a3346",
+    "text":      "#e6edf3",
+    "text_dim":  "#9aa7b8",
+    "accent":    "#00e5c7",
+    "accent_2":  "#3b82f6",
+    "danger":    "#ef4444",
+}
+
+def inject_theme():
+    st.markdown(f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap');
+
+    .stApp {{
+        background: radial-gradient(1200px 600px at 20% -10%, #17202e 0%, {THEME['bg']} 55%) fixed;
+        color: {THEME['text']};
+        font-family: 'Inter', -apple-system, sans-serif;
+    }}
+    #MainMenu, footer {{ visibility: hidden; }}
+
+    h1, h2, h3, h4 {{ font-family: 'Inter', sans-serif; letter-spacing: -0.02em; }}
+    .stMarkdown, .stText, p, label {{ color: {THEME['text']}; }}
+
+    .cirai-hero {{
+        border-radius: 18px;
+        padding: 28px 34px;
+        margin-bottom: 22px;
+        background: linear-gradient(120deg, {THEME['surface_2']} 0%, {THEME['surface']} 100%);
+        border: 1px solid {THEME['border']};
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }}
+    .cirai-hero .brand {{
+        font-size: 42px; font-weight: 800; line-height: 1;
+        background: linear-gradient(90deg, {THEME['accent']}, {THEME['accent_2']});
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }}
+    .cirai-hero .sub {{ color: {THEME['text_dim']}; font-size: 15px; margin-top: 8px; }}
+    .cirai-pill {{
+        display: inline-block; margin-top: 14px; padding: 5px 12px; border-radius: 999px;
+        font-size: 12px; font-weight: 600; color: {THEME['accent']};
+        background: rgba(0,229,199,.08); border: 1px solid rgba(0,229,199,.25);
+    }}
+
+    .cirai-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
+        border-radius: 16px;
+        padding: 20px 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 20px rgba(0,0,0,.28);
+    }}
+    .cirai-card-title {{
+        font-size: 13px; font-weight: 700; letter-spacing: .12em;
+        text-transform: uppercase; color: {THEME['accent']}; margin-bottom: 12px;
+        display: flex; align-items: center; gap: 8px;
+    }}
+
+    .cirai-skeleton {{
+        border: 1.5px dashed {THEME['border']};
+        border-radius: 14px; padding: 46px 20px; text-align: center;
+        color: {THEME['text_dim']}; background: rgba(255,255,255,.015);
+    }}
+    .cirai-skeleton .icon {{ font-size: 40px; opacity: .6; }}
+
+    .stButton > button {{
+        border-radius: 10px; font-weight: 600; border: 1px solid {THEME['border']};
+        background: {THEME['surface_2']}; color: {THEME['text']};
+        transition: all .18s ease; padding: 8px 16px;
+    }}
+    .stButton > button:hover {{
+        border-color: {THEME['accent']}; color: {THEME['accent']};
+        box-shadow: 0 0 0 3px rgba(0,229,199,.12); transform: translateY(-1px);
+    }}
+    div[data-testid="stButton"] button[kind="primary"] {{
+        background: linear-gradient(90deg, {THEME['accent']}, {THEME['accent_2']});
+        color: #06121a; border: none;
+    }}
+
+    div[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {{
+        background: {THEME['accent']}; box-shadow: 0 0 0 4px rgba(0,229,199,.2);
+    }}
+    div[data-testid="stSlider"] [data-baseweb="slider"] > div > div {{
+        background: linear-gradient(90deg, {THEME['accent']}, {THEME['accent_2']});
+    }}
+
+    .stTextInput input, .stTextArea textarea, .stFileUploader,
+    div[data-baseweb="select"] > div {{
+        background: {THEME['surface_2']} !important;
+        border-radius: 10px !important; border: 1px solid {THEME['border']} !important;
+        color: {THEME['text']} !important;
+    }}
+    .stTextInput input:focus, .stTextArea textarea:focus {{
+        border-color: {THEME['accent']} !important;
+        box-shadow: 0 0 0 3px rgba(0,229,199,.12) !important;
+    }}
+    .stTextArea label p {{
+        font-size: 20px !important;
+        font-weight: 600 !important;
+    }}
+    .stTextArea textarea {{
+        font-size: 18px !important;
+    }}
+
+    .stTabs [data-baseweb="tab-list"] {{ gap: 6px; border-bottom: 1px solid {THEME['border']}; }}
+    .stTabs [data-baseweb="tab"] {{
+        border-radius: 10px 10px 0 0; padding: 8px 18px; color: {THEME['text_dim']};
+    }}
+    .stTabs [aria-selected="true"] {{
+        color: {THEME['accent']} !important; background: {THEME['surface']};
+        border-bottom: 2px solid {THEME['accent']};
+    }}
+
+    section[data-testid="stSidebar"] {{
+        background: {THEME['surface']}; border-right: 1px solid {THEME['border']};
+    }}
+
+    .streamlit-expanderHeader, div[data-testid="stExpander"] details {{
+        border-radius: 12px; border: 1px solid {THEME['border']};
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+@contextlib.contextmanager
+def card(title: str, icon: str = "▍"):
+    st.markdown(
+        f'<div class="cirai-card"><div class="cirai-card-title">{icon} {title}</div>',
+        unsafe_allow_html=True,
+    )
+    yield
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def hero():
+    st.markdown("""
+    <div class="cirai-hero">
+        <div class="brand">cirAI</div>
+        <div class="sub">AI Circuit Analysis &amp; Analog IC Design Copilot &mdash;
+            symbolic derivation, interactive Desmos simulation, and Bode response.</div>
+        <span class="cirai-pill">&#9679; Analytical Engine Online</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def skeleton(icon: str, msg: str):
+    st.markdown(
+        f'<div class="cirai-skeleton"><div class="icon">{icon}</div>'
+        f'<div style="margin-top:10px;font-size:14px;">{msg}</div></div>',
+        unsafe_allow_html=True,
+    )
+
 
 def load_static_file(filename):
     """Load content from static file"""
@@ -501,10 +659,12 @@ def open_desmos_calculator(formula,params):
 
 # --- GUI --- #
 st.set_page_config(
-    page_title="CirAI Pro | AI Circuit Analysis & Analog IC Design Copilot",
+    page_title="cirAI | AI Circuit Analysis & Analog IC Design Copilot",
     page_icon="⚡",
     layout="wide"
 )
+inject_theme()
+hero()
 #connection()
 if 'project_data' not in st.session_state:
     st.session_state['project_data'] = {
@@ -517,7 +677,7 @@ if 'project_data' not in st.session_state:
         "bug_res": None,
         "feedbacks": [] 
     }
-st.title("CirAI Pro | AI Circuit Analysis & Analog IC Design Copilot")
+st.markdown('<p class="cirai-card-title">⚙️ Analysis Engine</p>', unsafe_allow_html=True)
 model = st.radio("Model:", ["gemini 3.5 flash (fast model)", "gemini 3.1 pro (accurate model)"], horizontal=True)
 if model == "gemini 3.5 flash (fast model)":
     model = genai.GenerativeModel('gemini-3.5-flash')
@@ -525,10 +685,10 @@ if model == "gemini 3.1 pro (accurate model)":
     model = genai.GenerativeModel('gemini-3.1-pro-preview')
 if 'res' not in st.session_state:
     st.session_state['res'] = None
-col_in, col_out = st.columns([1, 2])
+col_in, col_out = st.columns([1, 2], gap="large")
 
 with col_in:
-    st.header("1. Input (Image or Netlist)")
+    st.markdown('<p class="cirai-card-title">📥 Input Visualization</p>', unsafe_allow_html=True)
     st.markdown("### Load a previously saved project (JSON):")
     uploaded_file = st.file_uploader("", type=["json"])
     if uploaded_file is not None:
@@ -727,19 +887,21 @@ with col_in:
     derivation_steps = st.radio("Derivation Steps:", ["None", "Show derivation steps in markdown format"])
     st.markdown("---")
     derivation_steps_flag = 1 if derivation_steps == "Show derivation steps in markdown format" else 0
-    if st.button("Analyze Circuit", use_container_width=True):
+    if st.button("⚡ Analyze Circuit", use_container_width=True, type="primary"):
             if not img and not netlist_content:
                 st.error("Please provide an image, draw a circuit, or input a netlist first.")
             else:
+                st.toast("Analyzing circuit…", icon="🔍")
                 with st.spinner("Analyzing the circuit..."):
                     st.session_state['project_data']['analysis_request'] = analysis_request
                     st.session_state['project_data']['img'] = img
                     st.session_state['project_data']['netlist_text'] = netlist_content
                     res = analyze_circuit(img, netlist_content, analysis_request, derivation_steps_flag)
                     st.session_state['project_data']['res'] = res
+                st.toast("Symbolic equation generated ✓", icon="✅")
 
 with col_out:
-    st.header("2. Circuit Analysis")
+    res = st.session_state['project_data'].get('res')
     st.info("**Quick Guide:**\n\n"
             "1. **Verify:** Check the formula below matches your circuit diagram.\n"
             "2. **Edit Freely:** All expressions in Desmos can be modified manually.\n"
@@ -750,17 +912,15 @@ with col_out:
             "7. **Note:** Frequency ($f$) is represented by $x$; $s$ is pre-defined as $j 2 \\pi x$.\n"
             "8. **Axis scaling:** To change the scale of the axes, press shift and point to a specific axis, X-axis or Y-axis. Then change the size using the mouse wheel."
             )
-    res = st.session_state['project_data'].get('res')
+
+    # Compute variables needed across both cards
     if not res:
         z_init = """H(s) = 1/(1+R_{e}C_{e}s)"""
-        example_img = "LPF.jpg"
-        st.image(example_img, caption="Example circuit analysis", width=350)
         R_e = {"name": "R_e", "value": "100", "min": "1", "max": "1000", "step": "10"}
         C_e = {"name": "C_e", "value": "1p", "min": "1f", "max": "10p", "step": "0.1p"}
-        calculator_html = generate_calculator_html(z_init, params=[R_e, C_e])
-        st.components.v1.html(calculator_html, height=600)
+        calc_formula = z_init
+        calc_params = [R_e, C_e]
     else:
-        res = st.session_state['project_data'].get('res')
         z_latex = res.get('H_latex', '0')
         H_latex_formula = res.get('H_latex_formula', '0')
         topology = res.get('topology', 'Unknown')
@@ -784,126 +944,127 @@ with col_out:
                             new_val = opt_dict[raw_name]
                         if new_val is not None:
                             p['value'] = str(new_val)
-        st.success(f"**Topology:** {res.get('topology')}")
-        st.latex(rf"\large {H_latex_formula}")
-        st.markdown("---")
-        st.info("**Debugging:** Open browser console (F12) to see detailed calculator initialization logs and verify settings are applied correctly.")
+        calc_formula = st.session_state['project_data']['res'].get('H_latex_formula', '0')
+        calc_params = params
 
-        with st.expander("Watch full development"):
-            st.write("Analysis process:")
-            st.markdown(res.get('derivation_steps', "Not found"))
-            st.download_button(
-                label="Download text file",
-                data=res.get('derivation_steps', ""),
-                file_name="circuit_derivation.md",
-                mime="text/markdown"
-            )
-        with st.expander("📚 Reference Formulas (Auto-Detected)"):
-            st.markdown("Recognized parameters in the formula: " + ", ".join(res.get('params', [])))
-            detected_params = " ".join(res.get('params', [])) + res.get('H_latex_formula', '') + res.get('H_latex', '')
-            if 'gm' in detected_params or 'ro' in detected_params or 'M' in detected_params:
-                st.markdown("**MOSFET (Saturation Region):**")
-                st.latex(r"I_D = \frac{1}{2} \mu C_{ox} \frac{W}{L} (V_{GS} - V_{TH})^2")
-                st.latex(r"g_m = \frac{2I_D}{V_{OV}} = \sqrt{2 \mu C_{ox} \frac{W}{L} I_D}")
-                st.latex(r"r_o = \frac{1}{\lambda I_D} \approx \frac{V_E L}{I_D}")
-                st.divider()
-            if 'C' in detected_params:
-                st.markdown("**Capacitor:**")
-                st.latex(r"Z_C = \frac{1}{sC}")
-                st.latex(r"I_C = C \frac{dV_C}{dt}")
-                st.divider()
-            if 'L' in detected_params:
-                st.markdown("**Inductor & LC Tank:**")
-                st.latex(r"Z_L = sL")
-                st.latex(r"V_L = L \frac{dI_L}{dt}")
-                if 'C' in detected_params:
-                    st.latex(r"\omega_0 = \frac{1}{\sqrt{LC}} \quad \text{(Resonance Frequency)}")
-                st.divider()
-            if 'R' in detected_params:
-                st.markdown("**Resistor (Thermal Noise):**")
-                st.latex(r"\overline{V_n^2} = 4k_B T R \cdot \Delta f")
-        if st.button("Check for Bugs", use_container_width=True):
-            check_bugs(img, topology, H_latex_formula, analysis_request)
-        calculator_html = generate_calculator_html(st.session_state['project_data']['res'].get('H_latex_formula', '0'), params)
-        st.components.v1.html(calculator_html, height=600)
-        st.markdown("---")
-        st.markdown(
-            """
-            <style>
-            .stTextArea label p {
-                font-size: 20px !important;
-                font-weight: 600 !important;
-            }
-            .stTextArea textarea {
-                font-size: 18px !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        circuit_uses = st.text_area("Describe the use cases of the circuit (for example: low noise amplifier for 1GHz, power amplifier for 100MHz etc.):", height=150)
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        with col_btn1:
-            if st.button("AI Circuit Advisor"):
-                if not img:
-                    st.error("please upload something")
-                else:
-                    with st.spinner("Analyzing circuit use cases..."):
-                        st.session_state['project_data']['circuit_uses'] = circuit_uses 
-                        st.session_state['project_data']['advisor_res'] = electrical_advisor(img, topology, analysis_request, circuit_uses)
-        with col_btn2:
-                    if st.button("⚡ Optimize Parameters", use_container_width=True):
-                        opt_result = optimize_circuit(params, img, H_latex_formula, analysis_request, circuit_uses)
-                        if opt_result:
-                            st.session_state['project_data']['opt_res'] = opt_result
-                            st.success("Optimization complete! Updating calculator...")
-                            st.rerun()
-        render_feedback_section(st.session_state['project_data'])
-        with st.expander("🔧 Debugging Information"):
-                    st.markdown("""
-                    **To debug the calculator:**
-                    1. Open browser Developer Tools (F12)
-                    2. Go to the Console tab
-                    3. Look for initialization messages starting with "Initializing Desmos Calculator..."
-                    4. Check if settings are applied successfully
-                    5. Use `window.desmosCalc` in console to access the calculator object directly
-                    
-                    **Common issues:**
-                    - Settings not applied: Check console for error messages
-                    - Graph not displaying correctly: Verify complex mode is enabled
-                    - Axis issues: Check if log mode settings were applied
-                    """)
-                    st.markdown("---")
-                    st.markdown("### 🧠 Live System Memory (`project_data`)")
-                    debug_dict = {}
-                    for key, value in st.session_state['project_data'].items():
-                        if key == 'img':
-                            debug_dict[key] = "🖼️ [Image Object]" if value is not None else None
+    # Card 2: Analytical Engine Output
+    with card("Analytical Engine Output", "📐"):
+        if not res:
+            skeleton("📈", "No circuit analyzed yet. Upload an image or netlist, set the target node, then hit <b>&#9889; Analyze Circuit</b>.")
+            st.image("LPF.jpg", caption="Example: 1st-order RC low-pass filter", width=350)
+        else:
+            st.success(f"**Topology:** {res.get('topology')}")
+            st.latex(rf"\large {H_latex_formula}")
+
+    # Card 3: Interactive Simulation (tabbed)
+    with card("Interactive Simulation", "🎛️"):
+        tab_graph, tab_analytics = st.tabs(["📊 Interactive Desmos Graph", "🧾 Netlist / Analytics"])
+        with tab_graph:
+            calculator_html = generate_calculator_html(calc_formula, params=calc_params)
+            st.components.v1.html(calculator_html, height=600)
+        with tab_analytics:
+            if not res:
+                skeleton("🧮", "Analytics appear after circuit analysis.")
+            else:
+                st.info("**Debugging:** Open browser console (F12) to see detailed calculator initialization logs and verify settings are applied correctly.")
+                with st.expander("Watch full development"):
+                    st.write("Analysis process:")
+                    st.markdown(res.get('derivation_steps', "Not found"))
+                    st.download_button(
+                        label="Download text file",
+                        data=res.get('derivation_steps', ""),
+                        file_name="circuit_derivation.md",
+                        mime="text/markdown"
+                    )
+                with st.expander("📚 Reference Formulas (Auto-Detected)"):
+                    st.markdown("Recognized parameters in the formula: " + ", ".join(res.get('params', [])))
+                    detected_params = " ".join(res.get('params', [])) + res.get('H_latex_formula', '') + res.get('H_latex', '')
+                    if 'gm' in detected_params or 'ro' in detected_params or 'M' in detected_params:
+                        st.markdown("**MOSFET (Saturation Region):**")
+                        st.latex(r"I_D = \frac{1}{2} \mu C_{ox} \frac{W}{L} (V_{GS} - V_{TH})^2")
+                        st.latex(r"g_m = \frac{2I_D}{V_{OV}} = \sqrt{2 \mu C_{ox} \frac{W}{L} I_D}")
+                        st.latex(r"r_o = \frac{1}{\lambda I_D} \approx \frac{V_E L}{I_D}")
+                        st.divider()
+                    if 'C' in detected_params:
+                        st.markdown("**Capacitor:**")
+                        st.latex(r"Z_C = \frac{1}{sC}")
+                        st.latex(r"I_C = C \frac{dV_C}{dt}")
+                        st.divider()
+                    if 'L' in detected_params:
+                        st.markdown("**Inductor & LC Tank:**")
+                        st.latex(r"Z_L = sL")
+                        st.latex(r"V_L = L \frac{dI_L}{dt}")
+                        if 'C' in detected_params:
+                            st.latex(r"\omega_0 = \frac{1}{\sqrt{LC}} \quad \text{(Resonance Frequency)}")
+                        st.divider()
+                    if 'R' in detected_params:
+                        st.markdown("**Resistor (Thermal Noise):**")
+                        st.latex(r"\overline{V_n^2} = 4k_B T R \cdot \Delta f")
+                if st.button("Check for Bugs", use_container_width=True):
+                    check_bugs(img, topology, H_latex_formula, analysis_request)
+                circuit_uses = st.text_area("Describe the use cases of the circuit (for example: low noise amplifier for 1GHz, power amplifier for 100MHz etc.):", height=150)
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                with col_btn1:
+                    if st.button("AI Circuit Advisor"):
+                        if not img:
+                            st.error("please upload something")
                         else:
-                            debug_dict[key] = value
-                            z_latex = value
-                    st.json(debug_dict)
-                    st.json(z_latex)
-        if st.session_state['project_data'].get('opt_res'):
-            opt = st.session_state['project_data']['opt_res']
-            with st.expander("⚡ Optimization Results & Advice", expanded=True):
-                st.markdown("**New Optimized Parameters:**")
-                st.json(opt.get("optimized_parameters", {}))
-                st.markdown("**Advice / Reasoning:**")
-                st.write(opt.get("optimization_advice", "No advice provided."))
-        if st.session_state['project_data'].get('advisor_res'):
-            adv = st.session_state['project_data']['advisor_res']
-            with st.expander("AI Electrical Advisor - Detailed Recommendations and Derivation", expanded=True):
-                st.markdown("**Performance Advice:**")
-                st.markdown(adv.get('performance_advice', "Not found"))
-                st.markdown("**Power Advice:**")
-                st.markdown(adv.get('power_advice', "Not found"))
-                st.markdown("**Noise Advice:**")
-                st.markdown(adv.get('noise_advice', "Not found"))
-                st.markdown("**Component Advice:**")
-                st.markdown(adv.get('component_advice', "Not found"))
-                st.markdown("**Recommended Articles:**")
-                st.markdown(adv.get('Recommended_articles_links', "Not found"))
+                            with st.spinner("Analyzing circuit use cases..."):
+                                st.session_state['project_data']['circuit_uses'] = circuit_uses 
+                                st.session_state['project_data']['advisor_res'] = electrical_advisor(img, topology, analysis_request, circuit_uses)
+                with col_btn2:
+                            if st.button("⚡ Optimize Parameters", use_container_width=True):
+                                opt_result = optimize_circuit(params, img, H_latex_formula, analysis_request, circuit_uses)
+                                if opt_result:
+                                    st.session_state['project_data']['opt_res'] = opt_result
+                                    st.success("Optimization complete! Updating calculator...")
+                                    st.rerun()
+                render_feedback_section(st.session_state['project_data'])
+                with st.expander("🔧 Debugging Information"):
+                            st.markdown("""
+                            **To debug the calculator:**
+                            1. Open browser Developer Tools (F12)
+                            2. Go to the Console tab
+                            3. Look for initialization messages starting with "Initializing Desmos Calculator..."
+                            4. Check if settings are applied successfully
+                            5. Use `window.desmosCalc` in console to access the calculator object directly
+                            
+                            **Common issues:**
+                            - Settings not applied: Check console for error messages
+                            - Graph not displaying correctly: Verify complex mode is enabled
+                            - Axis issues: Check if log mode settings were applied
+                            """)
+                            st.markdown("---")
+                            st.markdown("### 🧠 Live System Memory (`project_data`)")
+                            debug_dict = {}
+                            for key, value in st.session_state['project_data'].items():
+                                if key == 'img':
+                                    debug_dict[key] = "🖼️ [Image Object]" if value is not None else None
+                                else:
+                                    debug_dict[key] = value
+                                    z_latex = value
+                            st.json(debug_dict)
+                            st.json(z_latex)
+                if st.session_state['project_data'].get('opt_res'):
+                    opt = st.session_state['project_data']['opt_res']
+                    with st.expander("⚡ Optimization Results & Advice", expanded=True):
+                        st.markdown("**New Optimized Parameters:**")
+                        st.json(opt.get("optimized_parameters", {}))
+                        st.markdown("**Advice / Reasoning:**")
+                        st.write(opt.get("optimization_advice", "No advice provided."))
+                if st.session_state['project_data'].get('advisor_res'):
+                    adv = st.session_state['project_data']['advisor_res']
+                    with st.expander("AI Electrical Advisor - Detailed Recommendations and Derivation", expanded=True):
+                        st.markdown("**Performance Advice:**")
+                        st.markdown(adv.get('performance_advice', "Not found"))
+                        st.markdown("**Power Advice:**")
+                        st.markdown(adv.get('power_advice', "Not found"))
+                        st.markdown("**Noise Advice:**")
+                        st.markdown(adv.get('noise_advice', "Not found"))
+                        st.markdown("**Component Advice:**")
+                        st.markdown(adv.get('component_advice', "Not found"))
+                        st.markdown("**Recommended Articles:**")
+                        st.markdown(adv.get('Recommended_articles_links', "Not found"))
     render_save_project_section(st.session_state['project_data'])
 open_editor_modal()
 show_guidde_video()
