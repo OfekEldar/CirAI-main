@@ -1113,7 +1113,7 @@ show_guidde_video()
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 with st.sidebar:
-    st.header("Analog/RF Expert Copilot",color="white")
+    st.markdown("<h1 style='color: white; font-size: 36px; font-weight: bold; margin-bottom: 10px;'>Analog/RF Expert Copilot</h1>", unsafe_allow_html=True)
     st.markdown("Ask me anything about the current circuit, layout considerations, or RF matching.")
     st.divider()
     for message in st.session_state['chat_history']:
