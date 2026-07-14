@@ -517,7 +517,7 @@ if 'project_data' not in st.session_state:
         "bug_res": None,
         "feedbacks": [] 
     }
-st.title("CirAI | AI Circuit Analysis & Analog IC Design Copilot")
+st.title("CirAI Pro | AI Circuit Analysis & Analog IC Design Copilot")
 model = st.radio("Model:", ["gemini 3.5 flash (fast model)", "gemini 3.1 pro (accurate model)"], horizontal=True)
 if model == "gemini 3.5 flash (fast model)":
     model = genai.GenerativeModel('gemini-3.5-flash')
