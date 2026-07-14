@@ -180,9 +180,9 @@ def hero():
     st.markdown("""
     <div class="cirai-hero">
         <div class="brand">cirAI</div>
-        <div class="sub">AI Circuit Analysis &amp; Analog IC Design Copilot —
+        <div class="sub">AI Circuit Analysis &amp; Analog IC Design Copilot &mdash;
             symbolic derivation, interactive Desmos simulation, and Bode response.</div>
-        <span class="cirai-pill">&#11044; Analytical Engine Online</span>
+        <span class="cirai-pill">&#9679; Analytical Engine Online</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -950,8 +950,7 @@ with col_out:
     # Card 2: Analytical Engine Output
     with card("Analytical Engine Output", "📐"):
         if not res:
-            skeleton("📈", "No circuit analyzed yet. Upload an image or netlist, "
-                           "set the target node, then hit <b>⚡ Analyze Circuit</b>.")
+            skeleton("📈", "No circuit analyzed yet. Upload an image or netlist, set the target node, then hit <b>&#9889; Analyze Circuit</b>.")
             st.image("LPF.jpg", caption="Example: 1st-order RC low-pass filter", width=350)
         else:
             st.success(f"**Topology:** {res.get('topology')}")
