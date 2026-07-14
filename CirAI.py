@@ -39,13 +39,14 @@ performance_advice, power_advice, noise_advice, component_advice, Recommended_ar
 model = genai.GenerativeModel('gemini-3.5-flash')
 
 # ---- Design tokens (professional EDA dark theme) ----
+# Softer slate/navy palette with brighter text for stronger contrast & legibility.
 THEME = {
-    "bg":        "#0e1117",
-    "surface":   "#161b26",
-    "surface_2": "#1c2333",
-    "border":    "#2a3346",
-    "text":      "#e6edf3",
-    "text_dim":  "#9aa7b8",
+    "bg":        "#1E222B",  # softer slate/navy instead of pitch black
+    "surface":   "#262C3C",  # card container background
+    "surface_2": "#2E3546",  # inputs / secondary surfaces (slightly lighter)
+    "border":    "#3A4254",  # subtle, clean borders for sharp hierarchy
+    "text":      "#F8F9FA",  # bright off-white primary text
+    "text_dim":  "#C3CCDA",  # highly legible secondary text / labels
     "accent":    "#00e5c7",
     "accent_2":  "#3b82f6",
     "danger":    "#ef4444",
@@ -57,14 +58,26 @@ def inject_theme():
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap');
 
     .stApp {{
-        background: radial-gradient(1200px 600px at 20% -10%, #17202e 0%, {THEME['bg']} 55%) fixed;
+        background: radial-gradient(1200px 600px at 20% -10%, #272E3B 0%, {THEME['bg']} 55%) fixed;
         color: {THEME['text']};
         font-family: 'Inter', -apple-system, sans-serif;
+        font-size: 17px;
     }}
     #MainMenu, footer {{ visibility: hidden; }}
 
-    h1, h2, h3, h4 {{ font-family: 'Inter', sans-serif; letter-spacing: -0.02em; }}
-    .stMarkdown, .stText, p, label {{ color: {THEME['text']}; }}
+    h1 {{ font-size: 38px !important; }}
+    h2 {{ font-size: 30px !important; }}
+    h3 {{ font-size: 24px !important; }}
+    h4 {{ font-size: 20px !important; }}
+    h1, h2, h3, h4 {{
+        font-family: 'Inter', sans-serif; letter-spacing: -0.02em;
+        color: {THEME['text']};
+    }}
+    .stMarkdown, .stText, p, li, label {{
+        color: {THEME['text']};
+        font-size: 17px;
+    }}
+    .stMarkdown p, .stMarkdown li {{ line-height: 1.6; }}
 
     .cirai-hero {{
         border-radius: 18px;
@@ -75,14 +88,14 @@ def inject_theme():
         box-shadow: 0 10px 30px rgba(0,0,0,.35);
     }}
     .cirai-hero .brand {{
-        font-size: 42px; font-weight: 800; line-height: 1;
+        font-size: 52px; font-weight: 800; line-height: 1;
         background: linear-gradient(90deg, {THEME['accent']}, {THEME['accent_2']});
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }}
-    .cirai-hero .sub {{ color: {THEME['text_dim']}; font-size: 15px; margin-top: 8px; }}
+    .cirai-hero .sub {{ color: {THEME['text_dim']}; font-size: 18px; margin-top: 10px; }}
     .cirai-pill {{
-        display: inline-block; margin-top: 14px; padding: 5px 12px; border-radius: 999px;
-        font-size: 12px; font-weight: 600; color: {THEME['accent']};
+        display: inline-block; margin-top: 14px; padding: 6px 14px; border-radius: 999px;
+        font-size: 14px; font-weight: 600; color: {THEME['accent']};
         background: rgba(0,229,199,.08); border: 1px solid rgba(0,229,199,.25);
     }}
 
@@ -95,7 +108,7 @@ def inject_theme():
         box-shadow: 0 6px 20px rgba(0,0,0,.28);
     }}
     .cirai-card-title {{
-        font-size: 13px; font-weight: 700; letter-spacing: .12em;
+        font-size: 15px; font-weight: 700; letter-spacing: .12em;
         text-transform: uppercase; color: {THEME['accent']}; margin-bottom: 12px;
         display: flex; align-items: center; gap: 8px;
     }}
@@ -103,14 +116,15 @@ def inject_theme():
     .cirai-skeleton {{
         border: 1.5px dashed {THEME['border']};
         border-radius: 14px; padding: 46px 20px; text-align: center;
-        color: {THEME['text_dim']}; background: rgba(255,255,255,.015);
+        color: {THEME['text_dim']}; background: rgba(255,255,255,.02);
+        font-size: 16px;
     }}
-    .cirai-skeleton .icon {{ font-size: 40px; opacity: .6; }}
+    .cirai-skeleton .icon {{ font-size: 44px; opacity: .7; }}
 
     .stButton > button {{
         border-radius: 10px; font-weight: 600; border: 1px solid {THEME['border']};
         background: {THEME['surface_2']}; color: {THEME['text']};
-        transition: all .18s ease; padding: 8px 16px;
+        transition: all .18s ease; padding: 9px 18px; font-size: 16px;
     }}
     .stButton > button:hover {{
         border-color: {THEME['accent']}; color: {THEME['accent']};
@@ -121,6 +135,15 @@ def inject_theme():
         color: #06121a; border: none;
     }}
 
+    /* Slider label + value read-outs highly legible */
+    div[data-testid="stSlider"] label, div[data-testid="stSlider"] label p {{
+        color: {THEME['text']} !important; font-size: 17px !important; font-weight: 600 !important;
+    }}
+    div[data-testid="stSlider"] [data-testid="stTickBarMin"],
+    div[data-testid="stSlider"] [data-testid="stTickBarMax"],
+    div[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] + div {{
+        color: {THEME['text_dim']} !important; font-size: 14px !important;
+    }}
     div[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {{
         background: {THEME['accent']}; box-shadow: 0 0 0 4px rgba(0,229,199,.2);
     }}
@@ -132,23 +155,42 @@ def inject_theme():
     div[data-baseweb="select"] > div {{
         background: {THEME['surface_2']} !important;
         border-radius: 10px !important; border: 1px solid {THEME['border']} !important;
-        color: {THEME['text']} !important;
+        color: {THEME['text']} !important; font-size: 17px !important;
+    }}
+    .stTextInput input::placeholder, .stTextArea textarea::placeholder {{
+        color: {THEME['text_dim']} !important;
+    }}
+    /* Generic input/select labels highly legible */
+    .stTextInput label, .stTextInput label p,
+    .stSelectbox label, .stSelectbox label p,
+    .stNumberInput label, .stNumberInput label p,
+    .stFileUploader label, .stFileUploader label p,
+    .stRadio label, .stCheckbox label {{
+        color: {THEME['text']} !important; font-size: 17px !important; font-weight: 600 !important;
     }}
     .stTextInput input:focus, .stTextArea textarea:focus {{
         border-color: {THEME['accent']} !important;
         box-shadow: 0 0 0 3px rgba(0,229,199,.12) !important;
     }}
     .stTextArea label p {{
-        font-size: 20px !important;
+        font-size: 22px !important;
         font-weight: 600 !important;
+        color: {THEME['text']} !important;
     }}
     .stTextArea textarea {{
         font-size: 18px !important;
     }}
 
+    /* LaTeX rendered via st.latex — sharp, large and legible */
+    .katex, .stMarkdown .katex, div[data-testid="stMarkdownContainer"] .katex {{
+        font-size: 1.35em !important;
+        color: {THEME['text']} !important;
+    }}
+
     .stTabs [data-baseweb="tab-list"] {{ gap: 6px; border-bottom: 1px solid {THEME['border']}; }}
     .stTabs [data-baseweb="tab"] {{
-        border-radius: 10px 10px 0 0; padding: 8px 18px; color: {THEME['text_dim']};
+        border-radius: 10px 10px 0 0; padding: 9px 20px; color: {THEME['text_dim']};
+        font-size: 16px; font-weight: 600;
     }}
     .stTabs [aria-selected="true"] {{
         color: {THEME['accent']} !important; background: {THEME['surface']};
@@ -190,7 +232,7 @@ def hero():
 def skeleton(icon: str, msg: str):
     st.markdown(
         f'<div class="cirai-skeleton"><div class="icon">{icon}</div>'
-        f'<div style="margin-top:10px;font-size:14px;">{msg}</div></div>',
+        f'<div style="margin-top:10px;font-size:16px;">{msg}</div></div>',
         unsafe_allow_html=True,
     )
 
